@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use warp::http::StatusCode;
-use warp::path;
-use warp::reject::{reject, Rejection};
-use warp::reply::json;
-use warp::Filter;
-use warp::Reply;
+use warp::{
+    http::StatusCode,
+    path,
+    reject::{reject, Rejection},
+    reply::json,
+    Filter, Reply,
+};
 
 #[tokio::main]
 async fn main() {
