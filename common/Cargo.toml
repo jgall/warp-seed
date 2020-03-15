@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 serde = { version = "^1.0.85", features = ['derive'] }
+
+[target.'cfg(not(wasm))'.dependencies]
+warp = "0.2.2"

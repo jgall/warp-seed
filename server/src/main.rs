@@ -1,4 +1,5 @@
-use common::models::{User, Username};
+use common::models::{TodoItem, User, Username};
+use common::JsonReply;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -7,7 +8,6 @@ use warp::{
     http::StatusCode,
     path,
     reject::{reject, Rejection},
-    reply::json,
     Filter, Reply,
 };
 
@@ -15,19 +15,28 @@ use warp::{
 async fn main() {
     let db = blank_db();
 
-    // GET /api/user/:username => 200 OK with body "{User Json}"
-    let get_user = warp::path!("user" / String)
+    let register_user = path("register")
+        .and(warp::post())
+        .and(with_db(db.clone()))
+        .and(warp::body::json())
+        .and_then(register_user);
+
+    // GET /api/user => 200 OK with body "{User Json}"
+    let get_user = warp::path!("user")
+        .and(warp::header("authorization"))
         .and(warp::get())
         .and(with_db(db.clone()))
         .and_then(get_user);
 
-    let create_user = path("create")
+    let add_todo = warp::path!("user")
+        .and(warp::header("authorization"))
         .and(warp::post())
-        .and(with_db(db.clone()))
         .and(warp::body::json())
-        .and_then(create_user);
+        .and(with_db(db.clone()))
+        .and_then(add_todo);
 
-    let api = path("api").and(get_user.or(create_user));
+    let api = get_user.or(register_user).or(add_todo);
+    let api = path("api").and(api);
 
     let index = warp::any().map(|| "Hello, welcome to the index page :)");
 
@@ -37,19 +46,32 @@ async fn main() {
 
 async fn get_user(username: String, db: Db) -> Result<impl Reply, Rejection> {
     if let Some(user) = db.lock().await.get(&username) {
-        Ok(json(user))
+        Ok(user.json())
     } else {
         Err(not_found())
     }
 }
 
-async fn create_user(db: Db, user: User) -> Result<impl warp::Reply, Infallible> {
+async fn register_user(db: Db, user: User) -> Result<impl warp::Reply, Infallible> {
     let mut db = db.lock().await;
     if db.get(&user.username).is_some() {
         Ok(StatusCode::UNAUTHORIZED)
     } else {
         db.insert(user.username.clone(), user);
         Ok(StatusCode::OK)
+    }
+}
+
+async fn add_todo(
+    username: String,
+    todo: TodoItem,
+    db: Db,
+) -> Result<impl warp::Reply, Infallible> {
+    if let Some(user) = db.lock().await.get_mut(&username) {
+        user.todos_map.insert(todo.id, todo);
+        Ok(StatusCode::OK)
+    } else {
+        Ok(StatusCode::UNAUTHORIZED)
     }
 }
 

@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+use warp::reply::Reply;
+
 pub mod models {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
@@ -7,7 +10,7 @@ pub mod models {
 
     #[derive(Serialize, Deserialize)]
     pub struct TodoItem {
-        pub id: i64,
+        pub id: TodoId,
         pub title: String,
         pub completed: bool,
     }
@@ -18,6 +21,19 @@ pub mod models {
         pub todos_map: HashMap<TodoId, TodoItem>,
     }
 }
+
+pub trait JsonReply
+where
+    Self: std::marker::Sized + Serialize,
+{
+    fn json(&self) -> warp::reply::Response {
+        warp::reply::json(self).into_response()
+    }
+}
+
+impl JsonReply for models::User {}
+
+impl JsonReply for models::TodoItem {}
 
 #[cfg(test)]
 mod tests {
