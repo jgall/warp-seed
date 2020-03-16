@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use warp::reply::Reply;
 
 pub mod models {
@@ -20,6 +20,25 @@ pub mod models {
         pub username: String,
         pub todos_map: HashMap<TodoId, TodoItem>,
     }
+
+    #[derive(Serialize, Deserialize)]
+    pub struct AuthHeader {
+        pub username: String,
+        pub password: String,
+    }
+
+    impl std::str::FromStr for AuthHeader {
+        type Err = serde_json::Error;
+        fn from_str(s: &str) -> std::result::Result<Self, <Self as std::str::FromStr>::Err> {
+            serde_json::from_str(s)
+        }
+    }
+
+    #[derive(Serialize, Deserialize)]
+    pub struct RegisterUser {
+        pub username: String,
+        pub password: String,
+    }
 }
 
 pub trait JsonReply
@@ -31,9 +50,7 @@ where
     }
 }
 
-impl JsonReply for models::User {}
-
-impl JsonReply for models::TodoItem {}
+impl<T> JsonReply for T where Self: std::marker::Sized + Serialize {}
 
 #[cfg(test)]
 mod tests {
